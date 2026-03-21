@@ -12,7 +12,7 @@ const routes = [
     },
     {
         path: '/',
-        redirect: '/dashboard'
+        redirect: '/login'
     },
     {
         path: '/dashboard',
@@ -33,8 +33,6 @@ router.beforeEach((to, from, next) => {
 
     if (to.meta.requiresAuth && !isAuthenticated) {
         next('/login')
-    } else if (to.path === '/login' && isAuthenticated) {
-        next('/dashboard')
     } else {
         next()
     }
