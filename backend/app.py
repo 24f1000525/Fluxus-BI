@@ -28,6 +28,20 @@ groq_service = GroqService()
 # In production, use a Database and Cloud Storage (e.g. S3)
 datasets_db = {}
 
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({
+        "service": "smart-bi-backend",
+        "status": "ok",
+        "message": "Backend is running. Use /upload, /generate-chart, and /query endpoints."
+    }), 200
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
+
 @app.route('/upload', methods=['POST'])
 def upload_csv():
     """
