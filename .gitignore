@@ -29,3 +29,8 @@ Thumbs.db
 # Logs
 *.log
 backend/install_log.txt
+
+# Environment variables
+.env
+.env.*
+!.env.example

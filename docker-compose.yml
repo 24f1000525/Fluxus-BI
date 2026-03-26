@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    restart: unless-stopped
+    volumes:
+      # Exclude __pycache__ mapping by keeping mostly image source
+      - ./backend:/app
+      - /app/__pycache__
+    # Run gunicorn instead of flask dev server
+    command: gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 120 app:app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:5000
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    depends_on:
+      - backend

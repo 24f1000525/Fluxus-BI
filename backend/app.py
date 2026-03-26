@@ -2,9 +2,11 @@ import os
 import uuid
 import tempfile
 import pandas as pd
+from dotenv import load_dotenv
 
-# Automatically set Groq API key provided by user for local testing
-os.environ["GROQ_API_KEY"] = "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"
+# Load environment variables for deployment & local usage
+load_dotenv()
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename

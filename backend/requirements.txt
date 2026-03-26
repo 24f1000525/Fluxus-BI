@@ -5,3 +5,5 @@ langchain
 langchain-xai
 langchain-experimental
 werkzeug
+python-dotenv
+gunicorn

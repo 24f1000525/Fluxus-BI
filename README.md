@@ -5,6 +5,17 @@ Smart BI is a full-stack BI dashboard app with:
 - A Flask + Pandas + LangChain backend
 - CSV upload, auto chart generation, prompt-based chart generation, and data Q&A
 
+## Features
+
+- CSV Upload and Profiling: Upload CSV files and automatically extract schema, column types, and data preview.
+- Auto Dashboard Generation: Instantly generate KPI cards and multiple chart types from detected numeric and categorical fields.
+- Prompt-Based Chart Creation: Create custom visualizations with natural-language prompts.
+- Data Q&A Assistant: Ask questions about uploaded data and get natural-language answers.
+- Interactive BI UI: Drag-and-arrange dashboard widgets with responsive chart rendering.
+- Export-Friendly Reports: Capture and export dashboard snapshots for sharing.
+- Frontend and Backend Separation: Vue frontend communicates with Flask APIs for scalable full-stack development.
+- CORS-Enabled API Layer: Ready for local frontend-backend integration during development.
+
 ## Project Structure
 
 ```text
