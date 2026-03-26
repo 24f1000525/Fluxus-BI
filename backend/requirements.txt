@@ -2,6 +2,7 @@ flask
 flask-cors
 pandas
 langchain
+langchain-groq
 langchain-xai
 langchain-experimental
 werkzeug
