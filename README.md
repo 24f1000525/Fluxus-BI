@@ -87,10 +87,46 @@ Base URL: `http://localhost:5000`
 
 ## Notes
 
-- Frontend API base is set to `http://localhost:5000` in `frontend/src/components/Dashboard.vue`.
+- Frontend API base uses `VITE_API_BASE_URL` with a localhost fallback in `frontend/src/components/Dashboard.vue`.
 - CORS is enabled in the backend via `flask-cors`.
 - Uploaded CSV files are stored in a temporary folder and dataset metadata is kept in memory.
-- Current backend code sets `GROQ_API_KEY` directly in `backend/app.py`. For production, use environment variables instead of hardcoding secrets.
+- `GROQ_API_KEY` is read from environment variables in `backend/GroqService.py`.
+
+## Free Render Deployment (No Blueprint)
+
+Use two separate manual services on Render free tier.
+
+Backend (Web Service):
+
+- Runtime: Python
+- Branch: `feature/docker-deployment` (or your main branch)
+- Root Directory: `backend`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn app:app --bind 0.0.0.0:$PORT`
+- Environment Variables:
+  - `GROQ_API_KEY=<your_real_key>`
+  - `PYTHON_VERSION=3.11.0`
+
+Frontend (Static Site):
+
+- Branch: `feature/docker-deployment` (or your main branch)
+- Root Directory: `frontend`
+- Build Command: `npm install && npm run build`
+- Publish Directory: `dist`
+- Environment Variables:
+  - `VITE_API_BASE_URL=<your_backend_render_url>`
+
+Static site rewrite rule:
+
+- Source: `/*`
+- Destination: `/index.html`
+
+Fallback if Root Directory is not available in your Render UI:
+
+- Backend Build Command: `pip install -r backend/requirements.txt`
+- Backend Start Command: `gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT`
+- Frontend Build Command: `cd frontend && npm install && npm run build`
+- Frontend Publish Directory: `frontend/dist`
 
 ## Run Both Services
 
