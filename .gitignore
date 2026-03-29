@@ -30,6 +30,9 @@ Thumbs.db
 *.log
 backend/install_log.txt
 
+# Local sqlite artifacts
+*.db
+
 # Environment variables
 .env
 .env.*

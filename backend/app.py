@@ -2,6 +2,8 @@ import os
 import uuid
 import tempfile
 import re
+import json
+import sqlite3
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -32,6 +34,68 @@ datasets_db = {}
 # In-memory storage for published dashboards.
 # In production, persist this in a database.
 published_dashboards = {}
+
+DEFAULT_DB_DIR = "/var/data" if os.path.isdir("/var/data") else os.path.dirname(__file__)
+PUBLISHED_DB_PATH = os.getenv("PUBLISHED_DB_PATH", os.path.join(DEFAULT_DB_DIR, "published_dashboards.db"))
+
+
+def init_published_db():
+    os.makedirs(os.path.dirname(PUBLISHED_DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(PUBLISHED_DB_PATH)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS published_dashboards (
+                share_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                theme TEXT NOT NULL,
+                layout_json TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def save_published_dashboard(share_id, layout, title, theme):
+    conn = sqlite3.connect(PUBLISHED_DB_PATH)
+    try:
+        conn.execute(
+            """
+            INSERT INTO published_dashboards (share_id, title, theme, layout_json)
+            VALUES (?, ?, ?, ?)
+            """,
+            (share_id, title, theme, json.dumps(layout))
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def load_published_dashboard(share_id):
+    conn = sqlite3.connect(PUBLISHED_DB_PATH)
+    try:
+        row = conn.execute(
+            """
+            SELECT title, theme, layout_json
+            FROM published_dashboards
+            WHERE share_id = ?
+            """,
+            (share_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "title": row[0],
+        "theme": row[1],
+        "layout": json.loads(row[2])
+    }
 
 
 def _format_title_token(token):
@@ -88,6 +152,9 @@ def home():
         "status": "ok",
         "message": "Backend is running. Use /upload, /generate-chart, and /query endpoints."
     }), 200
+
+
+init_published_db()
 
 
 @app.route('/health', methods=['GET'])
@@ -386,11 +453,7 @@ def publish_dashboard():
         return jsonify({"error": "Invalid or empty layout"}), 400
 
     share_id = str(uuid.uuid4())
-    published_dashboards[share_id] = {
-        "layout": layout,
-        "title": title,
-        "theme": theme
-    }
+    save_published_dashboard(share_id, layout, title, theme)
 
     return jsonify({"share_id": share_id}), 200
 
@@ -400,7 +463,9 @@ def get_published_dashboard(share_id):
     """
     Retrieves a published dashboard by share ID.
     """
-    dashboard = published_dashboards.get(share_id)
+    dashboard = load_published_dashboard(share_id)
+    if not dashboard:
+        dashboard = published_dashboards.get(share_id)
     if not dashboard:
         return jsonify({"error": "Dashboard not found"}), 404
 
