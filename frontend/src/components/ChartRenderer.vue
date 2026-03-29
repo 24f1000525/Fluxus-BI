@@ -79,6 +79,67 @@ const error = ref(false)
 const chartRef = ref(null)
 const isFullScreen = ref(false)
 
+const normalizeToken = (value) => String(value ?? '').trim()
+
+const firstNumericColumn = (rows, excluded = new Set()) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const sample = rows.find(r => r && typeof r === 'object') || {}
+  const keys = Object.keys(sample)
+  for (const key of keys) {
+    if (excluded.has(key)) continue
+    const hasNumeric = rows.some(row => {
+      const v = row?.[key]
+      return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
+    })
+    if (hasNumeric) return key
+  }
+  return null
+}
+
+const firstCategoricalColumn = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const sample = rows.find(r => r && typeof r === 'object') || {}
+  const keys = Object.keys(sample)
+  for (const key of keys) {
+    const hasText = rows.some(row => {
+      const v = row?.[key]
+      return typeof v === 'string' && normalizeToken(v) !== ''
+    })
+    if (hasText) return key
+  }
+  return keys[0] || null
+}
+
+const aggregatePieData = (rows, categoryKey, valueKey) => {
+  const grouped = new Map()
+
+  rows.forEach((row) => {
+    const rawCategory = row?.[categoryKey]
+    const category = normalizeToken(rawCategory) || 'Unknown'
+
+    let increment = 1
+    if (valueKey) {
+      const parsed = Number(row?.[valueKey])
+      increment = Number.isFinite(parsed) ? parsed : 0
+    }
+
+    grouped.set(category, (grouped.get(category) || 0) + increment)
+  })
+
+  let points = Array.from(grouped.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+
+  // Keep pie readable for high-cardinality text columns.
+  if (points.length > 12) {
+    const top = points.slice(0, 11)
+    const otherValue = points.slice(11).reduce((sum, item) => sum + item.value, 0)
+    points = otherValue > 0 ? [...top, { name: 'Other', value: otherValue }] : top
+  }
+
+  return points
+}
+
 // We want to ensure the configuration is sturdy and aesthetically pleasing.
 const mergedConfig = computed(() => {
   error.value = false;
@@ -88,24 +149,25 @@ const mergedConfig = computed(() => {
     // Deep clone config to allow intercepting and modifying dataset structures safely
     const chartConfig = JSON.parse(JSON.stringify(props.config));
     
-    // Automatically intercept Pie charts and aggregate their data by category to avoid split slices
+    // Automatically intercept Pie charts and aggregate category data to avoid one-slice-per-row charts.
     if (chartConfig.series && chartConfig.dataset && Array.isArray(chartConfig.dataset.source)) {
       chartConfig.series.forEach(serie => {
-        if (serie.type === 'pie' && serie.encode && serie.encode.itemName && serie.encode.value) {
-          const catCol = Array.isArray(serie.encode.itemName) ? serie.encode.itemName[0] : serie.encode.itemName;
-          const valCol = Array.isArray(serie.encode.value) ? serie.encode.value[0] : serie.encode.value;
-          
-          if (catCol && valCol) {
-            const aggregated = {};
-            chartConfig.dataset.source.forEach(row => {
-              const cat = row[catCol] !== undefined ? String(row[catCol]) : 'Unknown';
-              const val = parseFloat(row[valCol]) || 0;
-              if (!aggregated[cat]) {
-                aggregated[cat] = { ...row, [catCol]: cat, [valCol]: 0 };
-              }
-              aggregated[cat][valCol] += val;
-            });
-            chartConfig.dataset.source = Object.values(aggregated);
+        if (serie.type === 'pie') {
+          const rows = chartConfig.dataset.source
+          const encode = serie.encode || {}
+
+          const catCol = Array.isArray(encode.itemName)
+            ? encode.itemName[0]
+            : (encode.itemName || encode.x || firstCategoricalColumn(rows))
+
+          const valCol = Array.isArray(encode.value)
+            ? encode.value[0]
+            : (encode.value || encode.y || firstNumericColumn(rows, new Set([catCol])))
+
+          if (catCol) {
+            const pieData = aggregatePieData(rows, catCol, valCol)
+            serie.data = pieData
+            delete serie.encode
           }
         }
       });

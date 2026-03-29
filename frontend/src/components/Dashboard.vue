@@ -422,7 +422,7 @@ const generateChart = async () => {
       w: 6,
       h: 9, // Minimum height for charts
       i: String(++chartCounter),
-      title: currentPrompt.substring(0, 30) + (currentPrompt.length > 30 ? '...' : ''),
+      title: deriveGeneratedChartTitle(currentPrompt, config, chartType),
       chartType: chartType,
       config: config
     })
@@ -444,11 +444,154 @@ const detectChartType = (config) => {
   return 'bar'
 }
 
+const prettifyTitle = (value) => {
+  const acronyms = new Set(['api', 'llm', 'ai', 'sql', 'kpi', 'id'])
+  return String(value || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map(word => {
+      const lower = word.toLowerCase()
+      if (acronyms.has(lower)) return lower.toUpperCase()
+      if (/^[A-Z0-9]{2,}$/.test(word)) return word
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    })
+    .join(' ')
+}
+
+const deriveGeneratedChartTitle = (prompt, config, chartType) => {
+  const configTitle = typeof config?.title === 'string'
+    ? config.title
+    : (typeof config?.title?.text === 'string' ? config.title.text : '')
+
+  if (configTitle && configTitle.trim()) {
+    return prettifyTitle(configTitle)
+  }
+
+  const cleanedPrompt = String(prompt || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^(show|give|create|generate|draw|plot|build|display|make)\s+(me\s+)?/i, '')
+    .replace(/^(a|an|the)\s+/i, '')
+    .replace(/^(pie|bar|line|scatter)\s+(chart|graph|plot)\s*(of|for)?\s*/i, '')
+    .replace(/^(chart|graph|plot)\s*(of|for)?\s*/i, '')
+    .trim()
+
+  if (cleanedPrompt) {
+    return prettifyTitle(cleanedPrompt)
+  }
+
+  const chartLabel = chartType ? `${String(chartType).charAt(0).toUpperCase()}${String(chartType).slice(1)}` : 'Chart'
+  return `${chartLabel} Insight`
+}
+
+const firstNumericColumn = (rows, excluded = new Set()) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const sample = rows.find(r => r && typeof r === 'object') || {}
+  const keys = Object.keys(sample)
+  for (const key of keys) {
+    if (excluded.has(key)) continue
+    const hasNumeric = rows.some(row => {
+      const val = row?.[key]
+      return val !== null && val !== undefined && val !== '' && Number.isFinite(Number(val))
+    })
+    if (hasNumeric) return key
+  }
+  return null
+}
+
+const firstCategoricalColumn = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const sample = rows.find(r => r && typeof r === 'object') || {}
+  const keys = Object.keys(sample)
+  for (const key of keys) {
+    const hasText = rows.some(row => typeof row?.[key] === 'string' && String(row[key]).trim() !== '')
+    if (hasText) return key
+  }
+  return keys[0] || null
+}
+
+const inferEncode = (config) => {
+  const series = Array.isArray(config?.series) ? config.series : []
+  const firstSeries = series[0] || {}
+  const encode = firstSeries.encode || {}
+
+  const x = Array.isArray(encode.x) ? encode.x[0] : (encode.x || encode.itemName)
+  const y = Array.isArray(encode.y) ? encode.y[0] : (encode.y || encode.value)
+
+  if (x && y) return { x, y }
+
+  const rows = config?.dataset?.source
+  if (Array.isArray(rows) && rows.length > 0) {
+    const inferredX = x || firstCategoricalColumn(rows)
+    const inferredY = y || firstNumericColumn(rows, new Set(inferredX ? [inferredX] : []))
+    if (inferredX && inferredY) return { x: inferredX, y: inferredY }
+  }
+
+  // If chart currently uses explicit pie data [{name, value}], create a temporary mapping.
+  if (Array.isArray(firstSeries?.data) && firstSeries.data.length > 0) {
+    const pieRows = firstSeries.data
+      .filter(d => d && typeof d === 'object')
+      .map((d, idx) => ({ category: d.name ?? `Item ${idx + 1}`, value: Number(d.value) || 0 }))
+
+    if (pieRows.length > 0) {
+      config.dataset = { source: pieRows }
+      series.forEach(s => { delete s.data })
+      return { x: 'category', y: 'value' }
+    }
+  }
+
+  return { x: null, y: null }
+}
+
+const applyChartTypeShape = (config, chartType) => {
+  const next = config
+  const series = Array.isArray(next.series) ? next.series : []
+  const { x, y } = inferEncode(next)
+
+  if (chartType === 'pie') {
+    delete next.xAxis
+    delete next.yAxis
+    delete next.dataZoom
+    next.tooltip = { ...(next.tooltip || {}), trigger: 'item' }
+
+    series.forEach(s => {
+      s.type = 'pie'
+      if (!s.encode && x && y) {
+        s.encode = { itemName: x, value: y }
+      } else if (s.encode) {
+        s.encode = {
+          itemName: Array.isArray(s.encode.x) ? s.encode.x[0] : (s.encode.x || s.encode.itemName || x),
+          value: Array.isArray(s.encode.y) ? s.encode.y[0] : (s.encode.y || s.encode.value || y)
+        }
+      }
+    })
+    return next
+  }
+
+  // Cartesian chart shape (bar, line, scatter)
+  const xAxisType = chartType === 'scatter' ? 'value' : 'category'
+  next.xAxis = { ...(typeof next.xAxis === 'object' ? next.xAxis : {}), type: xAxisType }
+  next.yAxis = { ...(typeof next.yAxis === 'object' ? next.yAxis : {}), type: 'value' }
+  next.tooltip = { ...(next.tooltip || {}), trigger: chartType === 'scatter' ? 'item' : 'axis' }
+
+  series.forEach(s => {
+    s.type = chartType
+    if (x && y) {
+      s.encode = { x, y }
+    }
+  })
+
+  return next
+}
+
 // Allows user to dynamically change chart type from the card UI
 const updateChartType = (item) => {
   if (item.config && item.config.series) {
     const newConfig = JSON.parse(JSON.stringify(item.config))
-    newConfig.series.forEach(s => s.type = item.chartType)
+    applyChartTypeShape(newConfig, item.chartType)
     item.config = newConfig // trigger reactivity
   }
 }

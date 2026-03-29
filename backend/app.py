@@ -1,6 +1,7 @@
 import os
 import uuid
 import tempfile
+import re
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -27,6 +28,57 @@ groq_service = GroqService()
 # In-memory storage for datasets (for demonstration purposes only)
 # In production, use a Database and Cloud Storage (e.g. S3)
 datasets_db = {}
+
+# In-memory storage for published dashboards.
+# In production, persist this in a database.
+published_dashboards = {}
+
+
+def _format_title_token(token):
+    acronyms = {"ai", "llm", "ml", "nlp", "api", "sql", "kpi", "roi", "cpu", "gpu", "id", "csv"}
+    token = str(token or "").strip()
+    if not token:
+        return ""
+    return token.upper() if token.lower() in acronyms else token.capitalize()
+
+
+def _tokenize_name(value):
+    cleaned = re.sub(r'[^A-Za-z0-9]+', ' ', str(value or '')).strip()
+    return [t for t in cleaned.split() if t]
+
+
+def build_dashboard_title(filename, schema):
+    """
+    Build a meaningful dashboard title from CSV filename, then fallback to dataset metadata.
+    """
+    generic_words = {
+        "data", "dataset", "report", "reports", "file", "files", "export",
+        "table", "sheet", "new", "final", "copy", "backup", "sample"
+    }
+
+    if filename:
+        base_name = os.path.splitext(filename)[0]
+        raw_tokens = _tokenize_name(base_name)
+        if raw_tokens:
+            filtered = [t for t in raw_tokens if t.lower() not in generic_words]
+            use_tokens = filtered if filtered else raw_tokens
+            readable = ' '.join(_format_title_token(t) for t in use_tokens[:6]).strip()
+            if readable:
+                return f"{readable} Analysis Dashboard"
+
+    columns = schema.get("columns", []) if isinstance(schema, dict) else []
+    if columns:
+        col_tokens = []
+        for col in columns:
+            col_tokens.extend(_tokenize_name(col))
+            if len(col_tokens) >= 4:
+                break
+        if col_tokens:
+            readable = ' '.join(_format_title_token(t) for t in col_tokens[:4]).strip()
+            if readable:
+                return f"{readable} Analysis Dashboard"
+
+    return "Smart BI Analysis Dashboard"
 
 
 @app.route('/', methods=['GET'])
@@ -248,6 +300,7 @@ def upload_csv():
             return jsonify({
                 "message": "File processed successfully",
                 "doc_id": doc_id,
+                "dashboard_title": build_dashboard_title(filename, schema),
                 "schema": schema,
                 "auto_charts": auto_charts,
                 "dataset_subset": df_subset.to_dict(orient="records")
@@ -317,6 +370,39 @@ def query_data():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/publish', methods=['POST'])
+def publish_dashboard():
+    """
+    Stores a dashboard layout and returns a shareable ID.
+    """
+    data = request.json or {}
+    layout = data.get('layout')
+    title = data.get('title', 'Fluxus Bi Dashboard')
+
+    if not isinstance(layout, list) or len(layout) == 0:
+        return jsonify({"error": "Invalid or empty layout"}), 400
+
+    share_id = str(uuid.uuid4())
+    published_dashboards[share_id] = {
+        "layout": layout,
+        "title": title
+    }
+
+    return jsonify({"share_id": share_id}), 200
+
+
+@app.route('/dashboard/<share_id>', methods=['GET'])
+def get_published_dashboard(share_id):
+    """
+    Retrieves a published dashboard by share ID.
+    """
+    dashboard = published_dashboards.get(share_id)
+    if not dashboard:
+        return jsonify({"error": "Dashboard not found"}), 404
+
+    return jsonify(dashboard), 200
 
 
 if __name__ == '__main__':
