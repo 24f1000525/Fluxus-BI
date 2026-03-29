@@ -380,6 +380,7 @@ def publish_dashboard():
     data = request.json or {}
     layout = data.get('layout')
     title = data.get('title', 'Fluxus Bi Dashboard')
+    theme = data.get('theme', 'indigo')
 
     if not isinstance(layout, list) or len(layout) == 0:
         return jsonify({"error": "Invalid or empty layout"}), 400
@@ -387,7 +388,8 @@ def publish_dashboard():
     share_id = str(uuid.uuid4())
     published_dashboards[share_id] = {
         "layout": layout,
-        "title": title
+        "title": title,
+        "theme": theme
     }
 
     return jsonify({"share_id": share_id}), 200

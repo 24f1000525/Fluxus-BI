@@ -1,7 +1,7 @@
 <template>
-  <div class="h-screen bg-gray-50 text-gray-900 font-sans flex flex-col overflow-hidden">
+  <div class="h-screen bg-gray-50 text-gray-900 font-sans flex flex-col overflow-hidden dashboard-root" :style="themeVars">
     <!-- Header -->
-    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 w-full relative shrink-0">
+    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 w-full relative shrink-0 themed-surface">
         <div class="flex items-center space-x-3 shrink-0 mr-4">
           <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -11,6 +11,19 @@
         <div class="flex-1"></div>
         
         <div class="flex space-x-3 items-center ml-4 shrink-0">
+          <div v-if="docId" class="relative">
+            <select
+              v-model="selectedTheme"
+              class="appearance-none themed-select border text-sm rounded-xl px-3 py-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              title="Change dashboard theme"
+            >
+              <option v-for="theme in themeOptions" :key="theme.id" :value="theme.id">{{ theme.name }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+
           <input type="file" ref="fileInput" @change="handleFileUpload" accept=".csv" class="hidden" />
           <button @click="$refs.fileInput.click()" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium transition shadow-sm border border-blue-100 flex items-center space-x-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
@@ -40,10 +53,10 @@
 
       <!-- Main Dashboard Area -->
       <main ref="dashboardMainContainer" class="flex-1 overflow-auto p-6">
-        <div ref="dashboardRef" style="min-height: 100%; padding-bottom: 2rem;" class="bg-gray-50">
+        <div ref="dashboardRef" style="min-height: 100%; padding-bottom: 2rem;" class="bg-gray-50 themed-main-bg">
           <div v-if="dashboardTitle && layout.length > 0" class="dashboard-title-wrap w-full text-center flex flex-col items-center justify-center pt-2 pb-6 px-4">
             <h2 class="dashboard-title-text text-4xl font-extrabold text-gray-800 tracking-tight text-center">{{ dashboardTitle }}</h2>
-            <div class="w-24 h-1.5 bg-indigo-500 mt-4 rounded-full mx-auto"></div>
+            <div class="w-24 h-1.5 bg-indigo-500 mt-4 rounded-full mx-auto dashboard-title-accent"></div>
           </div>
           
           <!-- Initial Skeleton Loading / Data Call-to-Action -->
@@ -124,7 +137,7 @@
             :w="item.w"
             :h="item.h"
             :i="item.i"
-            class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col transition-shadow hover:shadow-md group"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col transition-shadow hover:shadow-md group themed-card"
             drag-allow-from=".drag-handle"
             drag-ignore-from=".no-drag"
           >
@@ -160,9 +173,9 @@
               <div class="absolute inset-3 overflow-visible">
                 
                 <!-- Metric Card UI -->
-                <div v-if="item.config?.is_metric" class="flex flex-col items-center justify-center w-full h-full bg-gradient-to-br from-indigo-50/50 to-blue-50/50 rounded-xl border border-indigo-100/50 text-center px-4 shadow-inner" style="min-height: 120px;">
-                  <h4 class="text-sm font-bold text-indigo-500 uppercase tracking-wider mb-2">{{ item.config.title }}</h4>
-                  <span class="text-4xl md:text-5xl font-black text-slate-800 tracking-tight" style="line-height: 1.2;">{{ item.config.value }}</span>
+                  <div v-if="item.config?.is_metric" class="flex flex-col items-center justify-center w-full h-full rounded-xl text-center px-4 shadow-inner themed-kpi-card" style="min-height: 120px;">
+                  <h4 class="text-sm font-bold uppercase tracking-wider mb-2 themed-kpi-title">{{ item.config.title }}</h4>
+                  <span class="text-4xl md:text-5xl font-black tracking-tight themed-kpi-value" style="line-height: 1.2;">{{ item.config.value }}</span>
                 </div>
                 
                 <!-- standard Echarts -->
@@ -176,13 +189,13 @@
     </div>
 
     <aside v-if="docId" class="hidden lg:flex w-[390px] h-full bg-transparent p-4 pl-3 shrink-0">
-      <div class="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+      <div class="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm themed-panel">
       <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/80">
         <h2 class="text-lg font-bold text-gray-800">Chart Generator</h2>
         <p class="text-xs text-gray-500 mt-1">Prompt charts here, preview, then add to dashboard.</p>
       </div>
 
-      <div ref="chartGeneratorContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div ref="chartGeneratorContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 themed-main-bg">
         <div v-if="chartGeneratorMessages.length === 0" class="h-full flex flex-col items-center justify-center text-center px-4">
           <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mb-3">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -197,7 +210,7 @@
           </div>
 
           <div class="flex justify-start">
-            <div class="w-full bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+            <div class="w-full bg-white border border-gray-200 rounded-2xl p-3 shadow-sm themed-card">
               <div v-if="msg.status === 'loading'" class="flex items-center gap-2 text-sm text-gray-500">
                 <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                 <span>Generating chart...</span>
@@ -211,9 +224,9 @@
                 <p class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">{{ msg.title }}</p>
 
                 <div class="h-56 rounded-xl border border-gray-100 bg-gray-50 relative overflow-hidden">
-                  <div v-if="msg.config?.is_metric" class="w-full h-full flex flex-col items-center justify-center text-center px-4 bg-gradient-to-br from-indigo-50 to-blue-50">
-                    <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">{{ msg.config.title }}</h4>
-                    <span class="text-3xl font-black text-slate-800">{{ msg.config.value }}</span>
+                  <div v-if="msg.config?.is_metric" class="w-full h-full flex flex-col items-center justify-center text-center px-4 themed-kpi-card">
+                    <h4 class="text-xs font-bold uppercase tracking-wider mb-2 themed-kpi-title">{{ msg.config.title }}</h4>
+                    <span class="text-3xl font-black themed-kpi-value">{{ msg.config.value }}</span>
                   </div>
                   <ChartRenderer v-else :config="msg.config" :is-exporting="true" />
                 </div>
@@ -240,7 +253,7 @@
       </div>
 
       <div class="p-4 border-t border-gray-200 bg-white">
-        <div class="relative rounded-2xl border border-gray-200 bg-gray-50 p-1.5 shadow-sm">
+        <div class="relative rounded-2xl border border-gray-200 bg-gray-50 p-1.5 shadow-sm themed-input-shell">
           <input
             v-model="promptInput"
             @keyup.enter="generateChart"
@@ -271,7 +284,7 @@
     <transition name="chat-slide">
       <div
         v-if="botOpen"
-        class="w-[360px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+        class="w-[360px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden themed-panel"
         style="max-height: 520px;"
       >
         <!-- Header -->
@@ -291,7 +304,7 @@
         </div>
 
         <!-- Chat Messages -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" ref="chatContainer" style="max-height: 340px; min-height: 180px;">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 themed-main-bg" ref="chatContainer" style="max-height: 340px; min-height: 180px;">
           <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center text-center py-10">
             <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-400 flex items-center justify-center mb-3">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -359,7 +372,7 @@
 
 
 <script setup>
-import { ref, reactive, nextTick, shallowRef } from 'vue'
+import { ref, reactive, nextTick, shallowRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { GridLayout, GridItem } from 'vue3-grid-layout'
 import ChartRenderer from './ChartRenderer.vue'
@@ -384,6 +397,100 @@ const chatMessages = ref([])
 const chatContainer = ref(null)
 const chartGeneratorMessages = ref([])
 const chartGeneratorContainer = ref(null)
+
+const selectedTheme = ref('indigo')
+const themeOptions = [
+  { id: 'indigo', name: 'Indigo Light' },
+  { id: 'ocean', name: 'Ocean Mist' },
+  { id: 'forest', name: 'Forest Sage' },
+  { id: 'sunset', name: 'Sunset Glow' },
+  { id: 'graphite', name: 'Graphite Slate' }
+]
+
+const themeMap = {
+  indigo: {
+    appBg: '#f8fafc',
+    surface: '#ffffff',
+    mainBg: '#f8fafc',
+    border: '#e5e7eb',
+    text: '#1f2937',
+    accent: '#6366f1',
+    inputBg: '#f8fafc',
+    kpiBg: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+    kpiBorder: '#c7d2fe',
+    kpiTitle: '#4f46e5',
+    kpiValue: '#1e293b'
+  },
+  ocean: {
+    appBg: '#f3f8fb',
+    surface: '#ffffff',
+    mainBg: '#eef6fb',
+    border: '#c8deec',
+    text: '#12324a',
+    accent: '#0ea5e9',
+    inputBg: '#f0f9ff',
+    kpiBg: 'linear-gradient(135deg, #e0f2fe 0%, #e0f7ff 100%)',
+    kpiBorder: '#bae6fd',
+    kpiTitle: '#0284c7',
+    kpiValue: '#0c4a6e'
+  },
+  forest: {
+    appBg: '#f4f8f3',
+    surface: '#ffffff',
+    mainBg: '#edf6ec',
+    border: '#d0e4cf',
+    text: '#1f3a2a',
+    accent: '#16a34a',
+    inputBg: '#f0fdf4',
+    kpiBg: 'linear-gradient(135deg, #dcfce7 0%, #ecfccb 100%)',
+    kpiBorder: '#bbf7d0',
+    kpiTitle: '#15803d',
+    kpiValue: '#14532d'
+  },
+  sunset: {
+    appBg: '#fff7f2',
+    surface: '#ffffff',
+    mainBg: '#fff1e8',
+    border: '#f3d5bf',
+    text: '#4a2a1e',
+    accent: '#f97316',
+    inputBg: '#fff7ed',
+    kpiBg: 'linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)',
+    kpiBorder: '#fdba74',
+    kpiTitle: '#ea580c',
+    kpiValue: '#7c2d12'
+  },
+  graphite: {
+    appBg: '#f3f4f6',
+    surface: '#ffffff',
+    mainBg: '#eceff3',
+    border: '#d1d5db',
+    text: '#111827',
+    accent: '#374151',
+    inputBg: '#f3f4f6',
+    kpiBg: 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)',
+    kpiBorder: '#9ca3af',
+    kpiTitle: '#374151',
+    kpiValue: '#111827'
+  }
+}
+
+const themeVars = computed(() => {
+  const theme = themeMap[selectedTheme.value] || themeMap.indigo
+  return {
+    '--theme-app-bg': theme.appBg,
+    '--theme-surface': theme.surface,
+    '--theme-main-bg': theme.mainBg,
+    '--theme-border': theme.border,
+    '--theme-text': theme.text,
+    '--theme-accent': theme.accent,
+    '--theme-input-bg': theme.inputBg,
+    '--theme-kpi-bg': theme.kpiBg,
+    '--theme-kpi-border': theme.kpiBorder,
+    '--theme-kpi-title': theme.kpiTitle,
+    '--theme-kpi-value': theme.kpiValue
+  }
+})
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 let fileSchema = null
@@ -880,7 +987,8 @@ const publishDashboard = async () => {
   try {
     const res = await axios.post(`${API_BASE}/publish`, {
       layout: layout.value,
-      title: dashboardTitle.value
+      title: dashboardTitle.value,
+      theme: selectedTheme.value
     })
     
     const uniqueId = res.data.share_id
@@ -945,5 +1053,57 @@ const handleLogout = () => {
   text-align: center;
   margin-left: auto;
   margin-right: auto;
+}
+
+.dashboard-root {
+  background: var(--theme-app-bg);
+  color: var(--theme-text);
+}
+
+.dashboard-root .themed-surface {
+  background: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dashboard-root .themed-main-bg {
+  background: var(--theme-main-bg) !important;
+}
+
+.dashboard-root .themed-card {
+  background: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dashboard-root .themed-panel {
+  background: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dashboard-root .themed-input-shell {
+  background: var(--theme-input-bg) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dashboard-root .themed-select {
+  background: var(--theme-input-bg) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text) !important;
+}
+
+.dashboard-root .dashboard-title-accent {
+  background-color: var(--theme-accent) !important;
+}
+
+.dashboard-root .themed-kpi-card {
+  background: var(--theme-kpi-bg) !important;
+  border: 1px solid var(--theme-kpi-border) !important;
+}
+
+.dashboard-root .themed-kpi-title {
+  color: var(--theme-kpi-title) !important;
+}
+
+.dashboard-root .themed-kpi-value {
+  color: var(--theme-kpi-value) !important;
 }
 </style>
