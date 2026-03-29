@@ -1,9 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gray-50 text-gray-900 font-sans flex overflow-hidden">
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col h-screen transition-all duration-300">
-      <!-- Header -->
-      <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 w-full relative">
+  <div class="h-screen bg-gray-50 text-gray-900 font-sans flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 w-full relative shrink-0">
         <div class="flex items-center space-x-3 shrink-0 mr-4">
           <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -34,42 +32,17 @@
             <span>Sign Out</span>
           </button>
         </div>
-      </header>
+    </header>
 
-      <!-- Prompt Input Area -->
-      <div v-if="docId" class="p-6 pb-0">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex space-x-4 items-center">
-          <div class="flex-grow relative">
-            <input 
-              v-model="promptInput" 
-              type="text" 
-              placeholder="e.g. Show me a bar chart of sales by region..." 
-              class="w-full pl-4 pr-12 py-3 bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-              @keyup.enter="generateChart" 
-            />
-            <div class="absolute right-3 top-3 text-gray-400">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            </div>
-          </div>
-          <button 
-            @click="generateChart" 
-            :disabled="loadingChart || !promptInput.trim()" 
-            class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center min-w-[140px] justify-center"
-          >
-            <span v-if="loadingChart" class="flex items-center space-x-2">
-              <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span>Generating...</span>
-            </span>
-            <span v-else>Generate Chart</span>
-          </button>
-        </div>
-      </div>
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col min-h-0 transition-all duration-300">
 
       <!-- Main Dashboard Area -->
-      <main class="flex-1 overflow-auto p-6">
+      <main ref="dashboardMainContainer" class="flex-1 overflow-auto p-6">
         <div ref="dashboardRef" style="min-height: 100%; padding-bottom: 2rem;" class="bg-gray-50">
-          <div v-if="dashboardTitle && layout.length > 0" class="w-full text-center flex flex-col items-center justify-center pt-2 pb-6 px-4">
-            <h2 class="text-4xl font-extrabold text-gray-800 tracking-tight text-center">{{ dashboardTitle }}</h2>
+          <div v-if="dashboardTitle && layout.length > 0" class="dashboard-title-wrap w-full text-center flex flex-col items-center justify-center pt-2 pb-6 px-4">
+            <h2 class="dashboard-title-text text-4xl font-extrabold text-gray-800 tracking-tight text-center">{{ dashboardTitle }}</h2>
             <div class="w-24 h-1.5 bg-indigo-500 mt-4 rounded-full mx-auto"></div>
           </div>
           
@@ -202,8 +175,97 @@
       </main>
     </div>
 
+    <aside v-if="docId" class="hidden lg:flex w-[390px] h-full bg-transparent p-4 pl-3 shrink-0">
+      <div class="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+      <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/80">
+        <h2 class="text-lg font-bold text-gray-800">Chart Generator</h2>
+        <p class="text-xs text-gray-500 mt-1">Prompt charts here, preview, then add to dashboard.</p>
+      </div>
+
+      <div ref="chartGeneratorContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <div v-if="chartGeneratorMessages.length === 0" class="h-full flex flex-col items-center justify-center text-center px-4">
+          <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <p class="text-sm text-gray-600 font-medium">Generate a chart with a prompt.</p>
+          <p class="text-xs text-gray-500 mt-1">Each result appears here with Add and Regenerate actions.</p>
+        </div>
+
+        <div v-for="msg in chartGeneratorMessages" :key="msg.id" class="space-y-2">
+          <div class="flex justify-end">
+            <div class="max-w-[90%] bg-indigo-600 text-white text-sm px-3 py-2 rounded-2xl rounded-tr-md shadow-sm">{{ msg.prompt }}</div>
+          </div>
+
+          <div class="flex justify-start">
+            <div class="w-full bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+              <div v-if="msg.status === 'loading'" class="flex items-center gap-2 text-sm text-gray-500">
+                <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <span>Generating chart...</span>
+              </div>
+
+              <div v-else-if="msg.status === 'error'" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {{ msg.error || 'Failed to generate chart.' }}
+              </div>
+
+              <div v-else>
+                <p class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">{{ msg.title }}</p>
+
+                <div class="h-56 rounded-xl border border-gray-100 bg-gray-50 relative overflow-hidden">
+                  <div v-if="msg.config?.is_metric" class="w-full h-full flex flex-col items-center justify-center text-center px-4 bg-gradient-to-br from-indigo-50 to-blue-50">
+                    <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">{{ msg.config.title }}</h4>
+                    <span class="text-3xl font-black text-slate-800">{{ msg.config.value }}</span>
+                  </div>
+                  <ChartRenderer v-else :config="msg.config" :is-exporting="true" />
+                </div>
+
+                <div class="mt-3 flex items-center gap-2">
+                  <button
+                    @click="addGeneratedChartToDashboard(msg)"
+                    class="px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+                  >
+                    Add To Dashboard
+                  </button>
+                  <button
+                    @click="regenerateGeneratedChart(msg)"
+                    :disabled="msg.status === 'loading'"
+                    class="px-3 py-2 text-xs font-semibold bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-gray-200 bg-white">
+        <div class="relative rounded-2xl border border-gray-200 bg-gray-50 p-1.5 shadow-sm">
+          <input
+            v-model="promptInput"
+            @keyup.enter="generateChart"
+            :disabled="!docId || loadingChart"
+            type="text"
+            placeholder="e.g. Show monthly API cost by service"
+            class="w-full pl-4 pr-12 py-2.5 bg-transparent border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <button
+            @click="generateChart"
+            :disabled="!docId || loadingChart || !promptInput.trim()"
+            class="absolute right-2 top-2 text-indigo-600 hover:text-indigo-700 disabled:text-gray-400 disabled:cursor-not-allowed rounded-xl bg-white/80 hover:bg-white p-1"
+            title="Generate chart"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          </button>
+        </div>
+        <p v-if="!docId" class="text-xs text-amber-500 mt-1.5 ml-1">Upload a CSV to generate charts.</p>
+      </div>
+      </div>
+    </aside>
+    </div>
+
   <!-- Floating Q&A Chatbot (Bottom-Right FAB) -->
-  <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-3">
+  <div v-if="docId" class="fixed bottom-6 z-50 flex flex-col items-end space-y-3 right-6 lg:right-[414px]">
 
     <!-- Chat Popup Window -->
     <transition name="chat-slide">
@@ -314,11 +376,14 @@ const dashboardTitle = ref('')
 const promptInput = ref('')
 const loadingChart = ref(false)
 const dashboardRef = ref(null)
+const dashboardMainContainer = ref(null)
 const botOpen = ref(false)
 const botInput = ref('')
 const botLoading = ref(false)
 const chatMessages = ref([])
 const chatContainer = ref(null)
+const chartGeneratorMessages = ref([])
+const chartGeneratorContainer = ref(null)
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 let fileSchema = null
@@ -340,6 +405,7 @@ const handleFileUpload = async (event) => {
     fileSchema = res.data.schema
     dashboardTitle.value = res.data.dashboard_title || 'Smart BI Dashboard'
     layout.value = [] // Reset the dashboard layout
+    chartGeneratorMessages.value = []
     chartCounter = 0
 
     // Auto-generate initial charts from backend templates
@@ -394,45 +460,97 @@ const handleFileUpload = async (event) => {
 
 const generateChart = async () => {
   if (!promptInput.value.trim() || !docId.value) return
-  
+
   loadingChart.value = true
-  const currentPrompt = promptInput.value
-  
+  const currentPrompt = promptInput.value.trim()
+  promptInput.value = ''
+
+  const message = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    prompt: currentPrompt,
+    status: 'loading',
+    title: '',
+    chartType: 'bar',
+    config: null,
+    error: ''
+  }
+  chartGeneratorMessages.value.push(message)
+  await scrollChartGeneratorBottom()
+
   try {
-    const res = await axios.post(`${API_BASE}/generate-chart`, {
-      doc_id: docId.value,
-      prompt: currentPrompt
-    })
-    
-    let config = res.data.config
-    // Parse if string
-    if (typeof config === 'string') {
-      try { config = JSON.parse(config) } catch (e) { console.warn("Could not parse config JSON string"); }
-    }
-    
-    // Determine chartType for dropdown depending on if it's a metric
-    const chartType = config.is_metric ? 'metric' : detectChartType(config)
-    
-    const currentY = layout.value.reduce((acc, item) => Math.max(acc, item.y + item.h), 0)
-    
-    // We add to the layout
-    layout.value.push({
-      x: (layout.value.length * 6) % 12,
-      y: currentY, // place at bottom safely
-      w: 6,
-      h: 9, // Minimum height for charts
-      i: String(++chartCounter),
-      title: deriveGeneratedChartTitle(currentPrompt, config, chartType),
-      chartType: chartType,
-      config: config
-    })
-    
-    promptInput.value = ''
+    const { config, chartType, title } = await requestGeneratedChart(currentPrompt)
+    message.status = 'ready'
+    message.config = config
+    message.chartType = chartType
+    message.title = title
+    message.error = ''
   } catch (error) {
     console.error(error)
-    alert(error.response?.data?.error || 'Failed to generate chart')
+    message.status = 'error'
+    message.error = error.response?.data?.error || 'Failed to generate chart'
   } finally {
     loadingChart.value = false
+    await scrollChartGeneratorBottom()
+  }
+}
+
+const requestGeneratedChart = async (prompt) => {
+  const res = await axios.post(`${API_BASE}/generate-chart`, {
+    doc_id: docId.value,
+    prompt
+  })
+
+  let config = res.data.config
+  if (typeof config === 'string') {
+    try { config = JSON.parse(config) } catch (e) { console.warn('Could not parse config JSON string') }
+  }
+
+  const chartType = config.is_metric ? 'metric' : detectChartType(config)
+  const title = deriveGeneratedChartTitle(prompt, config, chartType)
+  return { config, chartType, title }
+}
+
+const addGeneratedChartToDashboard = async (message) => {
+  if (!message?.config) return
+
+  const currentY = layout.value.reduce((acc, item) => Math.max(acc, item.y + item.h), 0)
+  const nextConfig = JSON.parse(JSON.stringify(message.config))
+  const nextChartType = nextConfig?.is_metric ? 'metric' : (message.chartType || detectChartType(nextConfig))
+
+  layout.value.push({
+    x: (layout.value.length * 6) % 12,
+    y: currentY,
+    w: 6,
+    h: nextChartType === 'metric' ? 5 : 9,
+    i: String(++chartCounter),
+    title: message.title,
+    chartType: nextChartType,
+    config: nextConfig
+  })
+
+  await nextTick()
+  if (dashboardMainContainer.value) {
+    dashboardMainContainer.value.scrollTop = dashboardMainContainer.value.scrollHeight
+  }
+}
+
+const regenerateGeneratedChart = async (message) => {
+  if (!message?.prompt || !docId.value) return
+  message.status = 'loading'
+  message.error = ''
+
+  try {
+    const { config, chartType, title } = await requestGeneratedChart(message.prompt)
+    message.config = config
+    message.chartType = chartType
+    message.title = title
+    message.status = 'ready'
+  } catch (error) {
+    console.error(error)
+    message.status = 'error'
+    message.error = error.response?.data?.error || 'Failed to regenerate chart'
+  } finally {
+    await scrollChartGeneratorBottom()
   }
 }
 
@@ -611,6 +729,13 @@ const scrollToBottom = async () => {
   }
 }
 
+const scrollChartGeneratorBottom = async () => {
+  await nextTick()
+  if (chartGeneratorContainer.value) {
+    chartGeneratorContainer.value.scrollTop = chartGeneratorContainer.value.scrollHeight
+  }
+}
+
 const askBot = async () => {
   if (!botInput.value.trim() || !docId.value || botLoading.value) return
   
@@ -641,55 +766,108 @@ const exportToPDF = async () => {
     alert("Add some charts to the dashboard first!")
     return
   }
-  
+
+  let mainEl = null
+  let oldScroll = 0
+  let titleWrap = null
+  let titleText = null
+  let previousWrapStyle = null
+  let previousTextStyle = null
+
   try {
     isExporting.value = true;
     await nextTick();
     await new Promise(r => setTimeout(r, 100)); // ensure layout nodes are stripped
     const el = dashboardRef.value
-    
+
     // Very important: if the container is scrolled globally, html2canvas will aggressively miss it.
     // Reset scroll of the parent container to top
-    const mainEl = el.parentElement;
-    const oldScroll = mainEl ? mainEl.scrollTop : 0;
+    mainEl = el.parentElement;
+    oldScroll = mainEl ? mainEl.scrollTop : 0;
     if (mainEl) mainEl.scrollTop = 0;
+
+    const captureWidth = el.clientWidth
+    const captureHeight = el.scrollHeight
+
+    // Force title centering during capture regardless of runtime layout quirks.
+    titleWrap = el.querySelector('.dashboard-title-wrap')
+    titleText = el.querySelector('.dashboard-title-text')
+
+    if (titleWrap) {
+      previousWrapStyle = {
+        width: titleWrap.style.width,
+        display: titleWrap.style.display,
+        justifyContent: titleWrap.style.justifyContent,
+        textAlign: titleWrap.style.textAlign
+      }
+      titleWrap.style.width = `${captureWidth}px`
+      titleWrap.style.display = 'flex'
+      titleWrap.style.justifyContent = 'center'
+      titleWrap.style.textAlign = 'center'
+    }
+
+    if (titleText) {
+      previousTextStyle = {
+        width: titleText.style.width,
+        textAlign: titleText.style.textAlign,
+        marginLeft: titleText.style.marginLeft,
+        marginRight: titleText.style.marginRight
+      }
+      titleText.style.width = `${captureWidth}px`
+      titleText.style.textAlign = 'center'
+      titleText.style.marginLeft = '0'
+      titleText.style.marginRight = '0'
+    }
     
     // Generate an image from the dashboard element
     const canvas = await html2canvas(el, { 
       scale: 1.5, 
       useCORS: true,
       backgroundColor: '#f8fafc', // Force light background so it's not transparent/black
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
       x: 0,
       y: 0
     })
-    
-    // Restore scroll after capture
-    if (mainEl) mainEl.scrollTop = oldScroll;
-    
-    isExporting.value = false;
-    
+
     const imgData = canvas.toDataURL('image/png')
-    
+
     // Use actual DOM dimensions for the PDF page size, 
     // but give it a high-res (scale 1.5) image.
     const pdfWidth = canvas.width / 1.5
     const pdfHeight = canvas.height / 1.5
-    
+
     const pdf = new jsPDF({
       orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
       unit: 'px',
       format: [pdfWidth, pdfHeight]
     })
-    
+
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
     pdf.save(`${dashboardTitle.value || 'Fluxus-Bi-Dashboard'}.pdf`)
   } catch (e) {
     console.error("Failed to export PDF", e)
     alert("Failed to capture dashboard.")
+  } finally {
+    if (mainEl) mainEl.scrollTop = oldScroll
+
+    if (titleWrap && previousWrapStyle) {
+      titleWrap.style.width = previousWrapStyle.width
+      titleWrap.style.display = previousWrapStyle.display
+      titleWrap.style.justifyContent = previousWrapStyle.justifyContent
+      titleWrap.style.textAlign = previousWrapStyle.textAlign
+    }
+
+    if (titleText && previousTextStyle) {
+      titleText.style.width = previousTextStyle.width
+      titleText.style.textAlign = previousTextStyle.textAlign
+      titleText.style.marginLeft = previousTextStyle.marginLeft
+      titleText.style.marginRight = previousTextStyle.marginRight
+    }
+
+    isExporting.value = false
   }
 }
 
@@ -755,5 +933,17 @@ const handleLogout = () => {
 .chat-slide-leave-to {
   opacity: 0;
   transform: translateY(20px) scale(0.97);
+}
+
+.dashboard-title-wrap {
+  width: 100%;
+  text-align: center;
+}
+
+.dashboard-title-text {
+  width: 100%;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 </style>
