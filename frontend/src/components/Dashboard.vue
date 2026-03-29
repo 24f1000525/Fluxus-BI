@@ -861,7 +861,11 @@ const askBot = async () => {
     chatMessages.value.push({ role: 'bot', content: res.data.answer })
   } catch (error) {
     console.error(error)
-    chatMessages.value.push({ role: 'bot', content: 'Sorry, I encountered an error processing your request.' })
+    const backendMessage = error?.response?.data?.error
+    chatMessages.value.push({
+      role: 'bot',
+      content: backendMessage || 'Sorry, I encountered an error processing your request.'
+    })
   } finally {
     botLoading.value = false
     await scrollToBottom()

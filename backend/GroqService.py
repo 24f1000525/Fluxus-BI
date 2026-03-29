@@ -108,13 +108,39 @@ class GroqService:
         Data Q&A bot using LangChain's Pandas DataFrame agent.
         It runs Python code against the pandas dataframe to find the answer.
         """
-        agent = create_pandas_dataframe_agent(
-            self._get_llm(),
-            df,
-            verbose=True,
-            agent_type="tool-calling",
-            allow_dangerous_code=True
-        )
-        
-        result = agent.invoke({"input": question})
-        return result.get("output", result.get("answer", "No answer could be determined."))
+        try:
+            agent = create_pandas_dataframe_agent(
+                self._get_llm(),
+                df,
+                verbose=False,
+                agent_type="tool-calling",
+                allow_dangerous_code=True
+            )
+
+            result = agent.invoke({"input": question})
+            return result.get("output", result.get("answer", "No answer could be determined."))
+        except Exception:
+            # Fallback path for restrictive/cloud runtimes where agent execution may fail.
+            sample_rows = df.head(25).replace({np.nan: None}).to_dict(orient='records')
+            schema = {k: str(v) for k, v in df.dtypes.items()}
+
+            fallback_prompt = f"""
+            You are a data analyst. Answer the user's question using ONLY the provided dataframe context.
+
+            User question:
+            {question}
+
+            Dataframe schema:
+            {json.dumps(schema)}
+
+            Dataframe sample rows (up to 25 rows):
+            {json.dumps(sample_rows)}
+
+            Rules:
+            - If the answer cannot be determined reliably from the provided sample, say that clearly.
+            - Keep the answer concise and factual.
+            """
+
+            fallback_res = self._get_llm().invoke(fallback_prompt)
+            content = getattr(fallback_res, "content", None)
+            return content if content else "I could not determine a reliable answer from the available data sample."
