@@ -7,6 +7,21 @@
       </div>
     </div>
     <v-chart v-else ref="chartRef" class="w-full h-full absolute inset-0" :option="mergedConfig" autoresize />
+
+    <!-- Sleek HTML-based Fullscreen Modal overlay spanning the entire browser window -->
+    <Teleport to="body">
+      <div v-if="isFullScreen" class="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-md flex flex-col p-6 sm:p-10 transition-opacity duration-300">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold text-gray-800 tracking-tight">{{ props.config?.title?.text || 'Interactive Chart View' }}</h2>
+          <button @click="isFullScreen = false" class="p-2.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 rounded-full transition shadow-sm border border-gray-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="flex-1 w-full h-full relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden p-4">
+          <v-chart class="absolute inset-0 w-full h-full" :option="fullScreenConfig" autoresize />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -53,21 +68,84 @@ const props = defineProps({
   config: {
     type: Object,
     required: true
+  },
+  isExporting: {
+    type: Boolean,
+    default: false
   }
 })
 
 const error = ref(false)
 const chartRef = ref(null)
+const isFullScreen = ref(false)
 
 // We want to ensure the configuration is sturdy and aesthetically pleasing.
 const mergedConfig = computed(() => {
   error.value = false;
   try {
-    // Basic validation
     if (!props.config) return {}
+    
+    // Deep clone config to allow intercepting and modifying dataset structures safely
+    const chartConfig = JSON.parse(JSON.stringify(props.config));
+    
+    // Automatically intercept Pie charts and aggregate their data by category to avoid split slices
+    if (chartConfig.series && chartConfig.dataset && Array.isArray(chartConfig.dataset.source)) {
+      chartConfig.series.forEach(serie => {
+        if (serie.type === 'pie' && serie.encode && serie.encode.itemName && serie.encode.value) {
+          const catCol = Array.isArray(serie.encode.itemName) ? serie.encode.itemName[0] : serie.encode.itemName;
+          const valCol = Array.isArray(serie.encode.value) ? serie.encode.value[0] : serie.encode.value;
+          
+          if (catCol && valCol) {
+            const aggregated = {};
+            chartConfig.dataset.source.forEach(row => {
+              const cat = row[catCol] !== undefined ? String(row[catCol]) : 'Unknown';
+              const val = parseFloat(row[valCol]) || 0;
+              if (!aggregated[cat]) {
+                aggregated[cat] = { ...row, [catCol]: cat, [valCol]: 0 };
+              }
+              aggregated[cat][valCol] += val;
+            });
+            chartConfig.dataset.source = Object.values(aggregated);
+          }
+        }
+      });
+    }
+
+    const isCartesian = chartConfig.xAxis || chartConfig.yAxis;
+
+    // Provide fullscreen capability universally to all charts, 
+    // and zoom exclusively to dimension-based charts.
+    const customToolbox = props.isExporting ? { show: false } : {
+      show: true,
+      itemSize: 14,
+      right: 15,
+      top: 0,
+      feature: {
+        myFullScreen: {
+          show: true,
+          title: 'Full Screen',
+          icon: 'path://M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z',
+          onclick: () => {
+            isFullScreen.value = true
+          }
+        },
+        ...(isCartesian ? {
+          dataZoom: { yAxisIndex: 'none', title: { zoom: 'Area Zoom', back: 'Restore Zoom' } },
+          restore: { title: 'Reset View' }
+        } : {})
+      }
+    };
+
+    const zoomConfig = isCartesian ? {
+      dataZoom: [
+        { type: 'inside' },
+        { type: 'slider', height: 20, bottom: 5 }
+      ]
+    } : {};
     
     // Inject nice defaults to whatever the LLM returns for a premium look
     return {
+      animation: false, // Strongly recommended for bug-free html2canvas PDF exports
       color: [
         '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', 
         '#f59e0b', '#6366f1', '#14b8a6', '#f43f5e',
@@ -79,17 +157,19 @@ const mergedConfig = computed(() => {
         borderColor: '#e5e7eb',
         borderWidth: 1,
         textStyle: { color: '#374151' },
-        ...props.config.tooltip
+        ...chartConfig.tooltip
       },
       grid: {
         top: 30,
         right: 20,
-        bottom: 30,
+        bottom: isCartesian ? 35 : 30, // Need extra space if the slider is present at the bottom
         left: 40,
         containLabel: true,
-        ...props.config.grid
+        ...chartConfig.grid
       },
-      ...props.config,
+      toolbox: customToolbox,
+      ...zoomConfig,
+      ...chartConfig,
       backgroundColor: 'transparent'
     }
   } catch (e) {
@@ -105,6 +185,16 @@ watch(() => props.config, (newVal) => {
     error.value = true;
   }
 }, { deep: true, immediate: true })
+
+const fullScreenConfig = computed(() => {
+  if (!mergedConfig.value) return {}
+  const clone = JSON.parse(JSON.stringify(mergedConfig.value))
+  // Deactivate the "Full Screen" button when already in full screen
+  if (clone.toolbox && clone.toolbox.feature && clone.toolbox.feature.myFullScreen) {
+    clone.toolbox.feature.myFullScreen.show = false
+  }
+  return clone
+})
 </script>
 
 <style scoped>

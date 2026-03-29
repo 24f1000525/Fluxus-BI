@@ -32,7 +32,7 @@ datasets_db = {}
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
-        "service": "smart-bi-backend",
+        "service": "fluxus-bi-backend",
         "status": "ok",
         "message": "Backend is running. Use /upload, /generate-chart, and /query endpoints."
     }), 200
@@ -243,14 +243,20 @@ def upload_csv():
                     })
             
             import numpy as np
+            import re
+            
             df_subset = df.head(500).replace({np.nan: None})
+            base_name = os.path.splitext(file.filename)[0]
+            clean_name = re.sub(r'[-_]', ' ', base_name).title()
+            dashboard_title = f"{clean_name} Analysis Dashboard"
             
             return jsonify({
                 "message": "File processed successfully",
                 "doc_id": doc_id,
                 "schema": schema,
                 "auto_charts": auto_charts,
-                "dataset_subset": df_subset.to_dict(orient="records")
+                "dataset_subset": df_subset.to_dict(orient="records"),
+                "dashboard_title": dashboard_title
             }), 200
             
         except Exception as e:
@@ -318,6 +324,40 @@ def query_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# In-memory storage for published dashboards
+published_dashboards_db = {}
+
+@app.route('/publish', methods=['POST'])
+def publish_dashboard():
+    """
+    Saves the dashboard layout and returns a unique shareable ID.
+    """
+    content = request.json
+    layout = content.get('layout')
+    title = content.get('title')
+    if not title:
+        title = 'Fluxus Bi Dashboard'
+    
+    if not layout:
+        return jsonify({"error": "Missing layout data"}), 400
+        
+    share_id = str(uuid.uuid4())[:8] # Short 8-char ID
+    published_dashboards_db[share_id] = {
+        "layout": layout,
+        "title": title
+    }
+    
+    return jsonify({"share_id": share_id}), 200
+
+@app.route('/dashboard/<share_id>', methods=['GET'])
+def get_shared_dashboard(share_id):
+    """
+    Retrieves a shared dashboard layout.
+    """
+    if share_id not in published_dashboards_db:
+        return jsonify({"error": "Dashboard not found"}), 404
+        
+    return jsonify(published_dashboards_db[share_id]), 200
 
 if __name__ == '__main__':
     # Ensure GROQ_API_KEY is present

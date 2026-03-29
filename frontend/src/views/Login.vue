@@ -10,8 +10,11 @@
       
       <!-- Content -->
       <div class="z-10 text-center px-12 text-white max-w-lg">
-        <div class="w-20 h-20 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mb-8 mx-auto border border-white/20 shadow-2xl">
-          <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <div class="flex items-center justify-center space-x-6 mb-8">
+          <div class="w-20 h-20 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/20 shadow-2xl shrink-0">
+            <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </div>
+          <h2 class="text-5xl font-extrabold tracking-wider whitespace-nowrap">Fluxus Bi</h2>
         </div>
         <h1 class="text-4xl font-bold mb-6 tracking-tight leading-tight">Smart Business<br>Intelligence</h1>
         <p class="text-lg text-indigo-200 mb-8 leading-relaxed">
@@ -98,9 +101,7 @@
           </div>
         </form>
         
-        <p class="text-xs text-center text-gray-400 mt-8">
-          Note: This is a demonstration environment. Logins are mocked.
-        </p>
+        
 
       </div>
     </div>

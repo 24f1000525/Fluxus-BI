@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // Assuming Dashboard was placed in components
 import Dashboard from '../components/Dashboard.vue'
 import Login from '../views/Login.vue'
+import SharedDashboard from '../views/SharedDashboard.vue'
 
 const routes = [
     {
@@ -19,6 +20,12 @@ const routes = [
         name: 'Dashboard',
         component: Dashboard,
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/share/:id',
+        name: 'SharedDashboard',
+        component: SharedDashboard,
+        meta: { requiresAuth: false }
     }
 ]
 
