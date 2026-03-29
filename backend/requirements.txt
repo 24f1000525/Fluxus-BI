@@ -8,4 +8,3 @@ langchain-experimental
 werkzeug
 python-dotenv
 gunicorn
-tabulate
