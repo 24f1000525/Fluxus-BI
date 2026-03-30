@@ -185,7 +185,7 @@ onMounted(async () => {
 
   const hash = window.location.hash || ''
   const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
-  const encodedData = hashParams.get('data') || route.query.data
+  const encodedData = hashParams.get('d') || hashParams.get('data') || route.query.d || route.query.data
   if (encodedData) {
     try {
       const payload = expandPayload(decodeSharePayload(String(encodedData)))

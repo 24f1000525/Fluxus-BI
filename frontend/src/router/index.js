@@ -26,6 +26,18 @@ const routes = [
         name: 'SharedDashboard',
         component: SharedDashboard,
         meta: { requiresAuth: false }
+    },
+    {
+        path: '/share',
+        name: 'SharedDashboardQuery',
+        component: SharedDashboard,
+        meta: { requiresAuth: false }
+    },
+    {
+        path: '/s',
+        name: 'SharedDashboardShort',
+        component: SharedDashboard,
+        meta: { requiresAuth: false }
     }
 ]
 

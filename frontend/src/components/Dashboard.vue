@@ -1054,7 +1054,8 @@ const publishDashboard = async () => {
     const payload = buildCompactPayload()
 
     const encoded = encodeSharePayload(payload)
-    const shareUrl = `${window.location.origin}/share/local#data=${encodeURIComponent(encoded)}`
+    const appOrigin = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin
+    const shareUrl = `${appOrigin}/s#d=${encodeURIComponent(encoded)}`
 
     if (shareUrl.length > 120000) {
       alert('This dashboard is too large for a URL-based share link. Please remove some charts or simplify chart data before publishing.')
