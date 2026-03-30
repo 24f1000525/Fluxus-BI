@@ -47,12 +47,12 @@
         </div>
     </header>
 
-    <div class="flex flex-1 min-h-0 overflow-hidden">
+    <div ref="dashboardMainContainer" class="flex flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
       <!-- Main Content -->
       <div class="flex-1 flex flex-col min-h-0 transition-all duration-300">
 
       <!-- Main Dashboard Area -->
-      <main ref="dashboardMainContainer" class="flex-1 overflow-auto p-6">
+      <main class="flex-1 overflow-visible p-6">
         <div ref="dashboardRef" style="min-height: 100%; padding-bottom: 2rem;" class="bg-gray-50 themed-main-bg">
           <div v-if="dashboardTitle && layout.length > 0" class="dashboard-title-wrap w-full text-center flex flex-col items-center justify-center pt-2 pb-6 px-4">
             <h2 class="dashboard-title-text text-4xl font-extrabold text-gray-800 tracking-tight text-center">{{ dashboardTitle }}</h2>
@@ -188,14 +188,14 @@
       </main>
     </div>
 
-    <aside v-if="docId" class="hidden lg:flex w-[390px] h-full bg-transparent p-4 pl-3 shrink-0">
+    <aside v-if="docId" class="hidden lg:flex w-[390px] h-full bg-transparent p-4 pl-3 shrink-0 sticky top-0 self-start">
       <div class="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm themed-panel">
       <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/80">
         <h2 class="text-lg font-bold text-gray-800">Chart Generator</h2>
         <p class="text-xs text-gray-500 mt-1">Prompt charts here, preview, then add to dashboard.</p>
       </div>
 
-      <div ref="chartGeneratorContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 themed-main-bg">
+      <div ref="chartGeneratorContainer" class="flex-1 overflow-y-hidden p-4 space-y-4 bg-gray-50 themed-main-bg">
         <div v-if="chartGeneratorMessages.length === 0" class="h-full flex flex-col items-center justify-center text-center px-4">
           <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mb-3">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -894,7 +894,7 @@ const exportToPDF = async () => {
 
     // Very important: if the container is scrolled globally, html2canvas will aggressively miss it.
     // Reset scroll of the parent container to top
-    mainEl = el.parentElement;
+    mainEl = dashboardMainContainer.value || el.parentElement;
     oldScroll = mainEl ? mainEl.scrollTop : 0;
     if (mainEl) mainEl.scrollTop = 0;
 
