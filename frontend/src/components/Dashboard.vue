@@ -1002,24 +1002,10 @@ const publishDashboard = async () => {
     }
 
     const encoded = encodeSharePayload(payload)
-    const shareUrl = `${window.location.origin}/share/local?data=${encodeURIComponent(encoded)}`
+    const shareUrl = `${window.location.origin}/share/local#data=${encodeURIComponent(encoded)}`
 
-    // If URL is too large for reliable sharing, fall back to backend publish endpoint.
-    if (shareUrl.length > 7000) {
-      const res = await axios.post(`${API_BASE}/publish`, {
-        layout: layout.value,
-        title: dashboardTitle.value,
-        theme: selectedTheme.value
-      })
-      const uniqueId = res.data.share_id
-      const fallbackUrl = `${window.location.origin}/share/${uniqueId}`
-
-      try {
-        await navigator.clipboard.writeText(fallbackUrl)
-        alert(`Dashboard is large, so a server link was used.\n\nShare URL copied:\n${fallbackUrl}`)
-      } catch (err) {
-        alert(`Dashboard is large, so a server link was used.\n\nShare URL:\n${fallbackUrl}`)
-      }
+    if (shareUrl.length > 14000) {
+      alert('This dashboard is too large for a URL-based share link. Please remove some charts or simplify chart data before publishing.')
       return
     }
     
