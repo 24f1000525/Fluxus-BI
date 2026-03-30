@@ -136,6 +136,25 @@ const themeVars = computed(() => {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 onMounted(async () => {
+  const decodeSharePayload = (encoded) => {
+    const json = decodeURIComponent(escape(atob(encoded)))
+    return JSON.parse(json)
+  }
+
+  const encodedData = route.query.data
+  if (encodedData) {
+    try {
+      const payload = decodeSharePayload(String(encodedData))
+      layout.value = payload.layout || []
+      dashboardTitle.value = payload.title || 'Fluxus Bi Dashboard'
+      selectedTheme.value = payload.theme || 'indigo'
+      loading.value = false
+      return
+    } catch (e) {
+      console.error('Invalid shared payload', e)
+    }
+  }
+
   const shareId = route.params.id
   if (!shareId) {
     error.value = true
