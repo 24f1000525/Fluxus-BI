@@ -86,6 +86,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { GridLayout, GridItem } from 'vue3-grid-layout'
 import ChartRenderer from '../components/ChartRenderer.vue'
+import { decompressFromEncodedURIComponent } from 'lz-string'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,6 +138,12 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 onMounted(async () => {
   const decodeSharePayload = (encoded) => {
+    const compressed = decompressFromEncodedURIComponent(encoded)
+    if (compressed) {
+      return JSON.parse(compressed)
+    }
+
+    // Backward compatibility for older base64 share links.
     const json = decodeURIComponent(escape(atob(encoded)))
     return JSON.parse(json)
   }

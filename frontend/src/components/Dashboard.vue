@@ -379,6 +379,7 @@ import ChartRenderer from './ChartRenderer.vue'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import axios from 'axios'
+import { compressToEncodedURIComponent } from 'lz-string'
 
 // State
 const router = useRouter()
@@ -990,7 +991,7 @@ const publishDashboard = async () => {
 
   const encodeSharePayload = (payload) => {
     const json = JSON.stringify(payload)
-    return btoa(unescape(encodeURIComponent(json)))
+    return compressToEncodedURIComponent(json)
   }
   
   try {
@@ -1004,7 +1005,7 @@ const publishDashboard = async () => {
     const encoded = encodeSharePayload(payload)
     const shareUrl = `${window.location.origin}/share/local#data=${encodeURIComponent(encoded)}`
 
-    if (shareUrl.length > 14000) {
+    if (shareUrl.length > 50000) {
       alert('This dashboard is too large for a URL-based share link. Please remove some charts or simplify chart data before publishing.')
       return
     }
