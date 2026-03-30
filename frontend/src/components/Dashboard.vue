@@ -993,19 +993,70 @@ const publishDashboard = async () => {
     const json = JSON.stringify(payload)
     return compressToEncodedURIComponent(json)
   }
+
+  const buildCompactPayload = () => {
+    let sharedDatasetSource = null
+    let sharedDatasetKey = null
+
+    for (const item of layout.value) {
+      const source = item?.config?.dataset?.source
+      if (Array.isArray(source) && source.length > 0) {
+        sharedDatasetSource = source
+        sharedDatasetKey = JSON.stringify(source)
+        break
+      }
+    }
+
+    const compactLayout = layout.value.map((item) => {
+      const compactConfig = JSON.parse(JSON.stringify(item.config || {}))
+
+      // Trim card-only hints and title duplication from chart config.
+      delete compactConfig.grid_w
+      delete compactConfig.grid_h
+      delete compactConfig.title
+
+      const source = compactConfig?.dataset?.source
+      if (
+        sharedDatasetSource &&
+        Array.isArray(source) &&
+        JSON.stringify(source) === sharedDatasetKey
+      ) {
+        delete compactConfig.dataset.source
+        compactConfig.__sharedDataset = true
+      }
+
+      if (compactConfig.dataset && Object.keys(compactConfig.dataset).length === 0) {
+        delete compactConfig.dataset
+      }
+
+      return {
+        i: item.i,
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+        t: item.title,
+        ct: item.chartType,
+        c: compactConfig
+      }
+    })
+
+    return {
+      v: 2,
+      t: dashboardTitle.value,
+      th: selectedTheme.value,
+      sd: sharedDatasetSource,
+      l: compactLayout
+    }
+  }
   
   try {
-    const payload = {
-      layout: layout.value,
-      title: dashboardTitle.value,
-      theme: selectedTheme.value,
-      v: 1
-    }
+    const payload = buildCompactPayload()
 
     const encoded = encodeSharePayload(payload)
     const shareUrl = `${window.location.origin}/share/local#data=${encodeURIComponent(encoded)}`
 
-    if (shareUrl.length > 50000) {
+    if (shareUrl.length > 120000) {
       alert('This dashboard is too large for a URL-based share link. Please remove some charts or simplify chart data before publishing.')
       return
     }

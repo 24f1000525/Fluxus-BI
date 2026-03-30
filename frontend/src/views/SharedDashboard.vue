@@ -148,12 +148,47 @@ onMounted(async () => {
     return JSON.parse(json)
   }
 
+  const expandPayload = (payload) => {
+    if (payload?.v === 2 && Array.isArray(payload.l)) {
+      const sharedDataset = payload.sd
+      const expandedLayout = payload.l.map((item) => {
+        const cfg = JSON.parse(JSON.stringify(item.c || {}))
+        if (cfg.__sharedDataset) {
+          delete cfg.__sharedDataset
+          cfg.dataset = {
+            ...(cfg.dataset || {}),
+            source: Array.isArray(sharedDataset) ? sharedDataset : []
+          }
+        }
+
+        return {
+          i: String(item.i),
+          x: item.x,
+          y: item.y,
+          w: item.w,
+          h: item.h,
+          title: item.t,
+          chartType: item.ct,
+          config: cfg
+        }
+      })
+
+      return {
+        layout: expandedLayout,
+        title: payload.t,
+        theme: payload.th
+      }
+    }
+
+    return payload
+  }
+
   const hash = window.location.hash || ''
   const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
   const encodedData = hashParams.get('data') || route.query.data
   if (encodedData) {
     try {
-      const payload = decodeSharePayload(String(encodedData))
+      const payload = expandPayload(decodeSharePayload(String(encodedData)))
       layout.value = payload.layout || []
       dashboardTitle.value = payload.title || 'Fluxus Bi Dashboard'
       selectedTheme.value = payload.theme || 'indigo'
